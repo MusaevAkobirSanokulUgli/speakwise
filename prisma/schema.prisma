@@ -1,0 +1,413 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("student")
+  level     String   @default("beginner")
+  lang      String   @default("en")
+  ageGroup  String   @default("adult")
+  points    Int      @default(0)
+  streak    Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  studentAnswers     StudentAnswer[]
+  quizResults        QuizResult[]
+  progress           StudentProgress[]
+  competitionEntries CompetitionEntry[]
+  userBadges         UserBadge[]
+  writingSubmissions WritingSubmission[]
+}
+
+model Level {
+  id          String @id @default(cuid())
+  name        String @unique
+  slug        String @unique
+  nameUz      String @default("")
+  nameRu      String @default("")
+  nameKo      String @default("")
+  order       Int
+  description String
+  descUz      String @default("")
+  descRu      String @default("")
+  descKo      String @default("")
+  color       String @default("#6366F1")
+
+  vocabulary      Vocabulary[]
+  quizzes         Quiz[]
+  questions       SpeakingQuestion[]
+  discussions     Discussion[]
+  progress        StudentProgress[]
+  readingPassages ReadingPassage[]
+  writingTasks    WritingTask[]
+}
+
+model Topic {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  slug        String  @unique
+  nameUz      String  @default("")
+  nameRu      String  @default("")
+  nameKo      String  @default("")
+  description String
+  descUz      String  @default("")
+  descRu      String  @default("")
+  descKo      String  @default("")
+  imageUrl    String?
+  icon        String  @default("📚")
+  order       Int
+
+  vocabulary      Vocabulary[]
+  quizzes         Quiz[]
+  questions       SpeakingQuestion[]
+  discussions     Discussion[]
+  lessonPlans     LessonPlan[]
+  progress        StudentProgress[]
+  readingPassages ReadingPassage[]
+  writingTasks    WritingTask[]
+}
+
+model Vocabulary {
+  id              String  @id @default(cuid())
+  word            String
+  definition      String
+  definitionUz    String  @default("")
+  definitionRu    String  @default("")
+  definitionKo    String  @default("")
+  exampleSentence String
+  exampleUz       String  @default("")
+  exampleRu       String  @default("")
+  exampleKo       String  @default("")
+  pronunciation   String?
+  imageUrl        String?
+  partOfSpeech    String?
+  ageGroup        String  @default("all")
+  examType        String  @default("general")
+
+  levelId String
+  topicId String
+  level   Level @relation(fields: [levelId], references: [id], onDelete: Cascade)
+  topic   Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@index([levelId, topicId])
+}
+
+model Quiz {
+  id            String  @id @default(cuid())
+  type          String
+  question      String
+  questionUz    String  @default("")
+  questionRu    String  @default("")
+  questionKo    String  @default("")
+  options       String?
+  correctAnswer String
+  explanation   String?
+  explanationUz String  @default("")
+  explanationRu String  @default("")
+  explanationKo String  @default("")
+  order         Int     @default(0)
+  examType      String  @default("general")
+  ageGroup      String  @default("all")
+
+  levelId String
+  topicId String
+  level   Level @relation(fields: [levelId], references: [id], onDelete: Cascade)
+  topic   Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  results QuizResult[]
+
+  @@index([levelId, topicId])
+}
+
+model SpeakingQuestion {
+  id              String  @id @default(cuid())
+  questionText    String
+  questionUz      String  @default("")
+  questionRu      String  @default("")
+  questionKo      String  @default("")
+  templateAnswer  String?
+  linkingWords    String?
+  answerStructure String?
+  tips            String?
+  tipsUz          String  @default("")
+  tipsRu          String  @default("")
+  tipsKo          String  @default("")
+  order           Int     @default(0)
+  examType        String  @default("general")
+
+  levelId String
+  topicId String
+  level   Level @relation(fields: [levelId], references: [id], onDelete: Cascade)
+  topic   Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  studentAnswers StudentAnswer[]
+
+  @@index([levelId, topicId])
+}
+
+model StudentAnswer {
+  id         String   @id @default(cuid())
+  answerText String
+  checked    Boolean  @default(false)
+  feedback   String?
+  score      Int?
+  createdAt  DateTime @default(now())
+
+  userId     String
+  questionId String
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question   SpeakingQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([questionId])
+}
+
+model QuizResult {
+  id          String   @id @default(cuid())
+  answer      String
+  isCorrect   Boolean
+  completedAt DateTime @default(now())
+
+  userId String
+  quizId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quiz   Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([quizId])
+}
+
+model Discussion {
+  id          String  @id @default(cuid())
+  title       String
+  titleUz     String  @default("")
+  titleRu     String  @default("")
+  titleKo     String  @default("")
+  description String
+  descUz      String  @default("")
+  descRu      String  @default("")
+  descKo      String  @default("")
+  prompts     String
+  tips        String?
+
+  levelId String
+  topicId String
+  level   Level @relation(fields: [levelId], references: [id], onDelete: Cascade)
+  topic   Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@index([levelId, topicId])
+}
+
+model LessonPlan {
+  id           String  @id @default(cuid())
+  title        String
+  duration     String  @default("2 hours")
+  objectives   String
+  materials    String
+  warmUp       String
+  mainActivity String
+  practice     String
+  coolDown     String
+  homework     String?
+
+  topicId String
+  topic   Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+}
+
+model SpeakingMaterial {
+  id         String  @id @default(cuid())
+  title      String
+  category   String
+  content    String
+  contentUz  String  @default("")
+  contentRu  String  @default("")
+  contentKo  String  @default("")
+  levelRange String?
+  order      Int     @default(0)
+}
+
+model StudentProgress {
+  id                String   @id @default(cuid())
+  vocabLearned      Int      @default(0)
+  quizzesCompleted  Int      @default(0)
+  questionsAnswered Int      @default(0)
+  quizScore         Float    @default(0)
+  readingScore      Float    @default(0)
+  writingScore      Float    @default(0)
+  lastAccessed      DateTime @default(now())
+
+  userId  String
+  levelId String
+  topicId String
+  user    User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  level   Level @relation(fields: [levelId], references: [id], onDelete: Cascade)
+  topic   Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, levelId, topicId])
+}
+
+// ====== NEW MODELS ======
+
+model Competition {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  type        String   @default("monthly")
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean  @default(true)
+  prize       String?
+  createdAt   DateTime @default(now())
+
+  entries CompetitionEntry[]
+}
+
+model CompetitionEntry {
+  id            String   @id @default(cuid())
+  score         Int      @default(0)
+  quizzesDone   Int      @default(0)
+  answersGiven  Int      @default(0)
+  completedAt   DateTime @default(now())
+
+  userId        String
+  competitionId String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  competition   Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, competitionId])
+  @@index([competitionId])
+}
+
+model Badge {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  nameUz      String  @default("")
+  nameRu      String  @default("")
+  nameKo      String  @default("")
+  description String
+  descUz      String  @default("")
+  descRu      String  @default("")
+  descKo      String  @default("")
+  icon        String
+  criteria    String
+  category    String  @default("achievement")
+
+  userBadges UserBadge[]
+}
+
+model UserBadge {
+  id       String   @id @default(cuid())
+  earnedAt DateTime @default(now())
+
+  userId  String
+  badgeId String
+  user    User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge   Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+}
+
+model ReadingPassage {
+  id        String @id @default(cuid())
+  title     String
+  titleUz   String @default("")
+  titleRu   String @default("")
+  titleKo   String @default("")
+  passage   String
+  wordCount Int    @default(0)
+  examType  String @default("general")
+  ageGroup  String @default("all")
+
+  levelId String
+  topicId String
+  level   Level @relation(fields: [levelId], references: [id], onDelete: Cascade)
+  topic   Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  questions ReadingQuestion[]
+
+  @@index([levelId, topicId])
+}
+
+model ReadingQuestion {
+  id            String  @id @default(cuid())
+  type          String
+  question      String
+  questionUz    String  @default("")
+  questionRu    String  @default("")
+  questionKo    String  @default("")
+  options       String?
+  correctAnswer String
+  explanation   String?
+  order         Int     @default(0)
+
+  passageId String
+  passage   ReadingPassage @relation(fields: [passageId], references: [id], onDelete: Cascade)
+}
+
+model WritingTask {
+  id           String  @id @default(cuid())
+  title        String
+  titleUz      String  @default("")
+  titleRu      String  @default("")
+  titleKo      String  @default("")
+  instructions String
+  instructUz   String  @default("")
+  instructRu   String  @default("")
+  instructKo   String  @default("")
+  type         String  @default("essay")
+  sampleAnswer String?
+  tips         String?
+  wordCountMin Int     @default(150)
+  wordCountMax Int     @default(250)
+  examType     String  @default("general")
+  ageGroup     String  @default("all")
+
+  levelId String
+  topicId String
+  level   Level @relation(fields: [levelId], references: [id], onDelete: Cascade)
+  topic   Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  submissions WritingSubmission[]
+
+  @@index([levelId, topicId])
+}
+
+model WritingSubmission {
+  id        String   @id @default(cuid())
+  text      String
+  wordCount Int      @default(0)
+  checked   Boolean  @default(false)
+  feedback  String?
+  score     Int?
+  createdAt DateTime @default(now())
+
+  userId String
+  taskId String
+  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task   WritingTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([taskId])
+}
+
+model Resource {
+  id          String @id @default(cuid())
+  title       String
+  description String
+  type        String @default("youtube")
+  url         String
+  category    String @default("general")
+  examType    String @default("general")
+  thumbnail   String?
+  order       Int    @default(0)
+}
