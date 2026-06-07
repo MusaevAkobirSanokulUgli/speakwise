@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useLanguage } from "@/context/LanguageContext";
 
 type QuizType = "multiple_choice" | "gap_fill" | "sentence_build";
 
@@ -8,9 +9,22 @@ interface Quiz {
   id: string | number;
   type: QuizType;
   question: string;
+  questionUz?: string;
+  questionRu?: string;
+  questionKo?: string;
   options?: string | string[]; // JSON string or array
   correctAnswer: string;
   explanation?: string;
+  explanationUz?: string;
+  explanationRu?: string;
+  explanationKo?: string;
+}
+
+function pickLang(en: string, uz?: string, ru?: string, ko?: string, lang?: string): string {
+  if (!lang || lang === "en") return en;
+  const map: Record<string, string | undefined> = { uz, ru, ko };
+  const val = map[lang];
+  return val && val.trim() !== "" ? val : en;
 }
 
 interface QuizComponentProps {
@@ -88,8 +102,11 @@ function QuizItem({
   onChange: (value: string) => void;
   onSubmit: () => void;
 }) {
+  const { lang, t } = useLanguage();
   const options = parseOptions(quiz.options);
   const submitted = answer.submitted;
+  const localQuestion = pickLang(quiz.question, quiz.questionUz, quiz.questionRu, quiz.questionKo, lang);
+  const localExplanation = quiz.explanation ? pickLang(quiz.explanation, quiz.explanationUz, quiz.explanationRu, quiz.explanationKo, lang) : undefined;
 
   return (
     <div className="animate-fade-in">
@@ -98,17 +115,17 @@ function QuizItem({
         <div className="flex items-center gap-2 mb-3">
           <span className="badge bg-indigo-100 text-indigo-700 text-xs">
             {quiz.type === "multiple_choice"
-              ? "Multiple Choice"
+              ? t("quiz", "multipleChoice")
               : quiz.type === "gap_fill"
-              ? "Fill the Gap"
-              : "Build a Sentence"}
+              ? t("quiz", "fillTheGap")
+              : t("quiz", "buildSentence")}
           </span>
         </div>
 
         {quiz.type === "gap_fill" ? (
-          <GapFillDisplay question={quiz.question} />
+          <GapFillDisplay question={localQuestion} />
         ) : (
-          <p className="text-slate-700 text-base leading-relaxed">{quiz.question}</p>
+          <p className="text-slate-700 text-base leading-relaxed">{localQuestion}</p>
         )}
       </div>
 
@@ -119,7 +136,7 @@ function QuizItem({
             const isSelected = answer.value === opt;
             const isCorrectOpt = normalizeAnswer(opt) === normalizeAnswer(quiz.correctAnswer);
             let optClass =
-              "flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all duration-150 ";
+              "flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all duration-150 active:scale-[0.98] ";
             if (!submitted) {
               optClass += isSelected
                 ? "border-indigo-400 bg-indigo-50"
@@ -179,8 +196,8 @@ function QuizItem({
             className="input"
             placeholder={
               quiz.type === "gap_fill"
-                ? "Type the missing word..."
-                : "Type your sentence here..."
+                ? t("quiz", "typeMissing")
+                : t("quiz", "typeSentence")
             }
             value={answer.value}
             onChange={(e) => !submitted && onChange(e.target.value)}
@@ -195,11 +212,11 @@ function QuizItem({
       {/* Submit button */}
       {!submitted && (
         <button
-          className="btn-primary w-full sm:w-auto"
+          className="btn-primary w-full sm:w-auto py-3 active:scale-[0.97]"
           onClick={onSubmit}
           disabled={!answer.value.trim()}
         >
-          Submit Answer
+          {t("quiz", "submitAnswer")}
         </button>
       )}
 
@@ -219,17 +236,17 @@ function QuizItem({
                 answer.isCorrect ? "text-emerald-700" : "text-red-700"
               }`}
             >
-              {answer.isCorrect ? "Correct!" : "Not quite right."}
+              {answer.isCorrect ? t("quiz", "correct") : t("quiz", "incorrect")}
             </p>
           </div>
           {!answer.isCorrect && (
             <p className="text-sm text-slate-600 mb-1">
-              <span className="font-medium">Correct answer:</span>{" "}
+              <span className="font-medium">{t("quiz", "correctAnswer")}:</span>{" "}
               <span className="font-semibold text-emerald-700">{quiz.correctAnswer}</span>
             </p>
           )}
-          {quiz.explanation && (
-            <p className="text-sm text-slate-500 italic">{quiz.explanation}</p>
+          {localExplanation && (
+            <p className="text-sm text-slate-500 italic">{localExplanation}</p>
           )}
         </div>
       )}
@@ -247,6 +264,7 @@ function ResultsScreen({
   total: number;
   onRetry: () => void;
 }) {
+  const { t } = useLanguage();
   const pct = Math.round((score / total) * 100);
   const passed = pct >= 60;
 
@@ -263,11 +281,10 @@ function ResultsScreen({
       </div>
 
       <h3 className="text-2xl font-bold text-slate-800 mb-1">
-        {passed ? "Great job!" : "Keep practicing!"}
+        {passed ? t("quiz", "wellDone") : t("quiz", "keepPracticing")}
       </h3>
       <p className="text-slate-500 mb-2">
-        You scored <strong className="text-slate-700">{score}</strong> out of{" "}
-        <strong className="text-slate-700">{total}</strong>
+        {t("quiz", "yourScore")}: <strong className="text-slate-700">{score}</strong> / <strong className="text-slate-700">{total}</strong>
       </p>
 
       {/* Score bar */}
@@ -278,11 +295,11 @@ function ResultsScreen({
       </div>
 
       <div className="flex gap-3">
-        <button className="btn-secondary" onClick={onRetry}>
-          Try Again
+        <button className="btn-secondary py-3 active:scale-[0.97]" onClick={onRetry}>
+          {t("quiz", "tryAgain")}
         </button>
-        <a href="/" className="btn-primary">
-          Back to Home
+        <a href="/" className="btn-primary py-3 active:scale-[0.97]">
+          {t("quiz", "backToHome")}
         </a>
       </div>
     </div>
@@ -291,6 +308,7 @@ function ResultsScreen({
 
 // ── Main component ────────────────────────────────────────────────────────────
 export default function QuizComponent({ quizzes }: QuizComponentProps) {
+  const { t } = useLanguage();
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState<Record<number, AnswerState>>({});
   const [inputValue, setInputValue] = useState("");
@@ -384,10 +402,10 @@ export default function QuizComponent({ quizzes }: QuizComponentProps) {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-semibold text-slate-500">
-            Question {current + 1} of {totalQuestions}
+            {t("quiz", "question")} {current + 1} {t("quiz", "of")} {totalQuestions}
           </span>
           <span className="badge bg-indigo-100 text-indigo-700 text-xs">
-            Score: {score}/{answeredCount > 0 ? answeredCount : "—"}
+            {t("quiz", "score")}: {score}/{answeredCount > 0 ? answeredCount : "\u2014"}
           </span>
         </div>
         <div className="progress-bar">
@@ -408,15 +426,15 @@ export default function QuizComponent({ quizzes }: QuizComponentProps) {
       {currentAnswer?.submitted && (
         <div className="mt-5 flex justify-end animate-fade-in">
           <button
-            className="btn-primary"
+            className="btn-primary py-3 active:scale-[0.97]"
             onClick={handleNext}
             disabled={submitting}
           >
             {submitting
-              ? "Submitting..."
+              ? t("quiz", "submitting")
               : current < totalQuestions - 1
-              ? "Next Question →"
-              : "Finish Quiz"}
+              ? t("quiz", "nextQuestion") + " \u2192"
+              : t("quiz", "finishQuiz")}
           </button>
         </div>
       )}

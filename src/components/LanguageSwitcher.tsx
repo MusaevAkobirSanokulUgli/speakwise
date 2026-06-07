@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { useLanguage, type Lang } from "@/context/LanguageContext";
 
 interface LangOption {
@@ -19,6 +20,7 @@ const LANG_OPTIONS: LangOption[] = [
 
 export default function LanguageSwitcher() {
   const { lang, setLang } = useLanguage();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -49,6 +51,7 @@ export default function LanguageSwitcher() {
   function handleSelect(code: Lang) {
     setLang(code);
     setOpen(false);
+    router.refresh();
   }
 
   return (

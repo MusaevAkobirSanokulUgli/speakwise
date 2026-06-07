@@ -1,9 +1,18 @@
 import { prisma } from "@/lib/prisma";
+import PermissionToggles from "./PermissionToggles";
 
 export default async function AdminStudentsPage() {
   const students = await prisma.user.findMany({
     where: { role: "student" },
-    include: {
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      level: true,
+      canAccessReading: true,
+      canAccessWriting: true,
+      createdAt: true,
       _count: {
         select: {
           studentAnswers: true,
@@ -20,7 +29,10 @@ export default async function AdminStudentsPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">Students</h1>
+      <h1 className="text-3xl font-bold text-gray-900 mb-2">Students</h1>
+      <p className="text-gray-500 mb-8">
+        Manage student accounts and control access to Reading & Writing sections.
+      </p>
 
       <div className="card overflow-hidden">
         <table className="w-full text-left">
@@ -44,6 +56,12 @@ export default async function AdminStudentsPage() {
               <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase">
                 Accuracy
               </th>
+              <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase text-center">
+                Reading Access
+              </th>
+              <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase text-center">
+                Writing Access
+              </th>
               <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase">
                 Joined
               </th>
@@ -52,7 +70,7 @@ export default async function AdminStudentsPage() {
           <tbody className="divide-y divide-gray-100">
             {students.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
+                <td colSpan={9} className="px-6 py-12 text-center text-gray-400">
                   No students registered yet.
                 </td>
               </tr>
@@ -104,6 +122,20 @@ export default async function AdminStudentsPage() {
                           {accuracy}%
                         </span>
                       </div>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <PermissionToggles
+                        studentId={student.id}
+                        field="canAccessReading"
+                        initialValue={student.canAccessReading}
+                      />
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <PermissionToggles
+                        studentId={student.id}
+                        field="canAccessWriting"
+                        initialValue={student.canAccessWriting}
+                      />
                     </td>
                     <td className="px-6 py-4 text-xs text-gray-400">
                       {new Date(student.createdAt).toLocaleDateString()}

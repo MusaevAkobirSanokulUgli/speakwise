@@ -16,6 +16,8 @@ model User {
   level     String   @default("beginner")
   lang      String   @default("en")
   ageGroup  String   @default("adult")
+  canAccessReading Boolean  @default(false)
+  canAccessWriting Boolean  @default(false)
   points    Int      @default(0)
   streak    Int      @default(0)
   createdAt DateTime @default(now())

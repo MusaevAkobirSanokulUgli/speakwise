@@ -7,6 +7,8 @@ export interface SessionUser {
   name: string;
   role: string;
   level: string;
+  canAccessReading: boolean;
+  canAccessWriting: boolean;
 }
 
 export async function getSession(): Promise<SessionUser | null> {
@@ -25,6 +27,8 @@ export async function getSession(): Promise<SessionUser | null> {
       name: user.name,
       role: user.role,
       level: user.level,
+      canAccessReading: user.canAccessReading,
+      canAccessWriting: user.canAccessWriting,
     };
   } catch {
     return null;

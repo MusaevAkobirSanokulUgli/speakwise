@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { getServerLang, pick } from "@/lib/serverLang";
+import { t } from "@/lib/i18n";
 import Navbar from "@/components/Navbar";
 
 export default async function LevelPage({
@@ -10,7 +12,7 @@ export default async function LevelPage({
   params: Promise<{ levelSlug: string }>;
 }) {
   const { levelSlug } = await params;
-  const user = await getSession();
+  const [user, lang] = await Promise.all([getSession(), getServerLang()]);
 
   const level = await prisma.level.findUnique({
     where: { slug: levelSlug },
@@ -30,6 +32,9 @@ export default async function LevelPage({
     },
   });
 
+  const levelName = pick(level.name, level.nameUz, level.nameRu, level.nameKo, lang);
+  const levelDesc = pick(level.description, level.descUz, level.descRu, level.descKo, lang);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar user={user} />
@@ -41,7 +46,7 @@ export default async function LevelPage({
             href="/levels"
             className="text-sm text-primary-600 hover:text-primary-700 font-medium mb-2 inline-block"
           >
-            &larr; All Levels
+            &larr; {t(lang, "nav", "levels")}
           </Link>
           <div className="flex items-center gap-4">
             <div
@@ -51,41 +56,45 @@ export default async function LevelPage({
               {level.order}
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">{level.name}</h1>
-              <p className="text-gray-500">{level.description}</p>
+              <h1 className="text-3xl font-bold text-gray-900">{levelName}</h1>
+              <p className="text-gray-500">{levelDesc}</p>
             </div>
           </div>
         </div>
 
         {/* Topics Grid */}
         <h2 className="text-xl font-bold mb-4">
-          Topics ({topics.length})
+          {t(lang, "levels", "topics")} ({topics.length})
         </h2>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {topics.map((topic) => (
-            <Link
-              key={topic.id}
-              href={`/levels/${levelSlug}/${topic.slug}`}
-              className="card p-6 group hover:border-primary-200 border-2 border-transparent"
-            >
-              <div className="flex items-start gap-4">
-                <span className="text-4xl">{topic.icon}</span>
-                <div className="flex-1">
-                  <h3 className="font-bold text-gray-900 group-hover:text-primary-600 transition-colors">
-                    {topic.name}
-                  </h3>
-                  <p className="text-sm text-gray-500 mt-1 line-clamp-2">
-                    {topic.description}
-                  </p>
+          {topics.map((topic) => {
+            const topicName = pick(topic.name, topic.nameUz, topic.nameRu, topic.nameKo, lang);
+            const topicDesc = pick(topic.description, topic.descUz, topic.descRu, topic.descKo, lang);
+            return (
+              <Link
+                key={topic.id}
+                href={`/levels/${levelSlug}/${topic.slug}`}
+                className="card p-6 group hover:border-primary-200 border-2 border-transparent"
+              >
+                <div className="flex items-start gap-4">
+                  <span className="text-4xl">{topic.icon}</span>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-gray-900 group-hover:text-primary-600 transition-colors">
+                      {topicName}
+                    </h3>
+                    <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+                      {topicDesc}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex gap-3 mt-4 pt-4 border-t border-gray-100 text-xs text-gray-400">
-                <span>📚 {topic._count.vocabulary} words</span>
-                <span>📝 {topic._count.quizzes} quizzes</span>
-                <span>🗣️ {topic._count.questions} questions</span>
-              </div>
-            </Link>
-          ))}
+                <div className="flex gap-3 mt-4 pt-4 border-t border-gray-100 text-xs text-gray-400">
+                  <span>📚 {topic._count.vocabulary} {t(lang, "levels", "words").toLowerCase()}</span>
+                  <span>📝 {topic._count.quizzes} {t(lang, "levels", "quizzes").toLowerCase()}</span>
+                  <span>🗣️ {topic._count.questions} {t(lang, "levels", "questions").toLowerCase()}</span>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </main>
     </div>

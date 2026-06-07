@@ -1,14 +1,27 @@
 "use client";
 
 import { useState } from "react";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface Question {
   id: string;
   questionText: string;
+  questionUz: string;
+  questionRu: string;
+  questionKo: string;
   templateAnswer: string | null;
   linkingWords: string | null;
   answerStructure: string | null;
   tips: string | null;
+  tipsUz: string;
+  tipsRu: string;
+  tipsKo: string;
+}
+
+function pick(en: string, uz: string, ru: string, ko: string, lang: string): string {
+  const map: Record<string, string> = { en, uz, ru, ko };
+  const val = map[lang];
+  return val && val.trim() !== "" ? val : en;
 }
 
 export default function SpeakingQuestionsClient({
@@ -18,6 +31,7 @@ export default function SpeakingQuestionsClient({
   questions: Question[];
   isLoggedIn: boolean;
 }) {
+  const { lang } = useLanguage();
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState<Record<string, boolean>>({});
   const [showTemplate, setShowTemplate] = useState<Record<string, boolean>>({});
@@ -55,6 +69,9 @@ export default function SpeakingQuestionsClient({
           ? (JSON.parse(q.linkingWords) as string[])
           : [];
 
+        const localQuestion = pick(q.questionText, q.questionUz, q.questionRu, q.questionKo, lang);
+        const localTips = q.tips ? pick(q.tips, q.tipsUz, q.tipsRu, q.tipsKo, lang) : null;
+
         return (
           <div key={q.id} className="card p-6 animate-fade-in">
             {/* Question header */}
@@ -64,15 +81,15 @@ export default function SpeakingQuestionsClient({
               </span>
               <div className="flex-1">
                 <h3 className="text-lg font-semibold text-gray-900">
-                  {q.questionText}
+                  {localQuestion}
                 </h3>
               </div>
             </div>
 
             {/* Tips */}
-            {q.tips && (
+            {localTips && (
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 text-sm text-amber-800">
-                <strong>Tip:</strong> {q.tips}
+                <strong>Tip:</strong> {localTips}
               </div>
             )}
 

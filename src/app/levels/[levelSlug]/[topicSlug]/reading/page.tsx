@@ -1,7 +1,9 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { getServerLang, pick } from "@/lib/serverLang";
+import { t } from "@/lib/i18n";
 import Navbar from "@/components/Navbar";
 import ReadingClient from "./ReadingClient";
 
@@ -11,7 +13,12 @@ export default async function ReadingPage({
   params: Promise<{ levelSlug: string; topicSlug: string }>;
 }) {
   const { levelSlug, topicSlug } = await params;
-  const user = await getSession();
+  const [user, lang] = await Promise.all([getSession(), getServerLang()]);
+
+  if (!user) redirect("/login");
+  if (user.role !== "admin" && user.role !== "teacher" && !user.canAccessReading) {
+    redirect(`/levels/${levelSlug}/${topicSlug}?denied=reading`);
+  }
 
   const [level, topic] = await Promise.all([
     prisma.level.findUnique({ where: { slug: levelSlug } }),
@@ -28,6 +35,9 @@ export default async function ReadingPage({
     },
   });
 
+  const levelName = pick(level.name, level.nameUz, level.nameRu, level.nameKo, lang);
+  const topicName = pick(topic.name, topic.nameUz, topic.nameRu, topic.nameKo, lang);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar user={user} />
@@ -36,21 +46,21 @@ export default async function ReadingPage({
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-gray-500 mb-6">
           <Link href="/levels" className="hover:text-indigo-600">
-            Levels
+            {t(lang, "nav", "levels")}
           </Link>
           <span>/</span>
           <Link href={`/levels/${levelSlug}`} className="hover:text-indigo-600">
-            {level.name}
+            {levelName}
           </Link>
           <span>/</span>
           <Link
             href={`/levels/${levelSlug}/${topicSlug}`}
             className="hover:text-indigo-600"
           >
-            {topic.name}
+            {topicName}
           </Link>
           <span>/</span>
-          <span className="text-gray-900 font-medium">Reading</span>
+          <span className="text-gray-900 font-medium">{t(lang, "topics", "reading")}</span>
         </div>
 
         {/* Page Header */}
@@ -59,12 +69,10 @@ export default async function ReadingPage({
             <span className="text-4xl">📖</span>
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
-                {topic.name} — <span className="gradient-text">Reading</span>
+                {topicName} — <span className="gradient-text">{t(lang, "topics", "reading")}</span>
               </h1>
               <p className="text-gray-500 mt-0.5">
-                {level.name} &middot; {passages.length} passage
-                {passages.length !== 1 ? "s" : ""} &middot; Read carefully and
-                answer comprehension questions
+                {levelName} &middot; {passages.length} {passages.length === 1 ? "passage" : "passages"}
               </p>
             </div>
           </div>
@@ -74,16 +82,13 @@ export default async function ReadingPage({
           <div className="card p-12 text-center">
             <div className="text-5xl mb-4">📚</div>
             <h2 className="text-xl font-semibold text-gray-700 mb-2">
-              No reading passages yet
+              {t(lang, "common", "noData")}
             </h2>
-            <p className="text-gray-400">
-              Reading passages for this topic are coming soon.
-            </p>
             <Link
               href={`/levels/${levelSlug}/${topicSlug}`}
               className="btn-secondary mt-6 inline-block"
             >
-              &larr; Back to Topic
+              &larr; {t(lang, "topics", "backToTopic")}
             </Link>
           </div>
         ) : (
@@ -97,20 +102,23 @@ export default async function ReadingPage({
                     >
                       {idx + 1}
                     </span>
-                    <h2 className="text-lg font-bold text-gray-700">
-                      Passage {idx + 1}
-                    </h2>
                   </div>
                 )}
                 <ReadingClient
                   passageId={passage.id}
                   passageTitle={passage.title}
+                  passageTitleUz={passage.titleUz}
+                  passageTitleRu={passage.titleRu}
+                  passageTitleKo={passage.titleKo}
                   passageText={passage.passage}
                   wordCount={passage.wordCount}
                   questions={passage.questions.map((q) => ({
                     id: q.id,
                     type: q.type,
                     question: q.question,
+                    questionUz: q.questionUz,
+                    questionRu: q.questionRu,
+                    questionKo: q.questionKo,
                     options: q.options,
                     correctAnswer: q.correctAnswer,
                     explanation: q.explanation,
@@ -127,13 +135,13 @@ export default async function ReadingPage({
             href={`/levels/${levelSlug}/${topicSlug}/discussion`}
             className="btn-secondary"
           >
-            &larr; Discussion
+            &larr; {t(lang, "topics", "discussion")}
           </Link>
           <Link
             href={`/levels/${levelSlug}/${topicSlug}/writing`}
             className="btn-primary"
           >
-            Writing &rarr;
+            {t(lang, "topics", "writing")} &rarr;
           </Link>
         </div>
       </main>

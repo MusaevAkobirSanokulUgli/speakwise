@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { getServerLang, pick } from "@/lib/serverLang";
+import { t } from "@/lib/i18n";
 import Navbar from "@/components/Navbar";
 import VocabCard from "@/components/VocabCard";
 
@@ -11,7 +13,7 @@ export default async function VocabularyPage({
   params: Promise<{ levelSlug: string; topicSlug: string }>;
 }) {
   const { levelSlug, topicSlug } = await params;
-  const user = await getSession();
+  const [user, lang] = await Promise.all([getSession(), getServerLang()]);
 
   const [level, topic] = await Promise.all([
     prisma.level.findUnique({ where: { slug: levelSlug } }),
@@ -24,6 +26,9 @@ export default async function VocabularyPage({
     orderBy: { word: "asc" },
   });
 
+  const levelName = pick(level.name, level.nameUz, level.nameRu, level.nameKo, lang);
+  const topicName = pick(topic.name, topic.nameUz, topic.nameRu, topic.nameKo, lang);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar user={user} />
@@ -32,50 +37,50 @@ export default async function VocabularyPage({
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-gray-500 mb-6">
           <Link href="/levels" className="hover:text-primary-600">
-            Levels
+            {t(lang, "nav", "levels")}
           </Link>
           <span>/</span>
           <Link href={`/levels/${levelSlug}`} className="hover:text-primary-600">
-            {level.name}
+            {levelName}
           </Link>
           <span>/</span>
           <Link
             href={`/levels/${levelSlug}/${topicSlug}`}
             className="hover:text-primary-600"
           >
-            {topic.name}
+            {topicName}
           </Link>
           <span>/</span>
-          <span className="text-gray-900 font-medium">Vocabulary</span>
+          <span className="text-gray-900 font-medium">{t(lang, "topics", "vocabulary")}</span>
         </div>
 
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
-              {topic.icon} {topic.name} — Vocabulary
+              {topic.icon} {topicName} — {t(lang, "topics", "vocabulary")}
             </h1>
             <p className="text-gray-500 mt-1">
-              {level.name} &middot; {vocabulary.length} words to learn
+              {levelName} &middot; {vocabulary.length} {t(lang, "levels", "words").toLowerCase()}
             </p>
           </div>
           <Link
             href={`/levels/${levelSlug}/${topicSlug}/quiz`}
             className="btn-primary hidden sm:inline-flex"
           >
-            Take Quiz &rarr;
+            {t(lang, "topics", "quiz")} &rarr;
           </Link>
         </div>
 
         {vocabulary.length === 0 ? (
           <div className="card p-12 text-center">
             <p className="text-gray-400 text-lg">
-              No vocabulary available for this level and topic yet.
+              {t(lang, "common", "noData")}
             </p>
           </div>
         ) : (
           <>
             <p className="text-sm text-gray-400 mb-6">
-              Click on a card to flip it and see the definition and example sentence.
+              {t(lang, "topics", "vocabulary")}
             </p>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
               {vocabulary.map((vocab) => (
@@ -83,7 +88,13 @@ export default async function VocabularyPage({
                   key={vocab.id}
                   word={vocab.word}
                   definition={vocab.definition}
+                  definitionUz={vocab.definitionUz}
+                  definitionRu={vocab.definitionRu}
+                  definitionKo={vocab.definitionKo}
                   exampleSentence={vocab.exampleSentence}
+                  exampleUz={vocab.exampleUz}
+                  exampleRu={vocab.exampleRu}
+                  exampleKo={vocab.exampleKo}
                   pronunciation={vocab.pronunciation ?? undefined}
                   imageUrl={vocab.imageUrl ?? undefined}
                   partOfSpeech={vocab.partOfSpeech ?? undefined}
@@ -99,13 +110,13 @@ export default async function VocabularyPage({
             href={`/levels/${levelSlug}/${topicSlug}`}
             className="btn-secondary"
           >
-            &larr; Back to Topic
+            &larr; {t(lang, "topics", "backToTopic")}
           </Link>
           <Link
             href={`/levels/${levelSlug}/${topicSlug}/quiz`}
             className="btn-primary"
           >
-            Take Quiz &rarr;
+            {t(lang, "topics", "quiz")} &rarr;
           </Link>
         </div>
       </main>

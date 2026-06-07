@@ -1,11 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface ReadingQuestion {
   id: string;
   type: string;
   question: string;
+  questionUz: string;
+  questionRu: string;
+  questionKo: string;
   options: string | null;
   correctAnswer: string;
   explanation: string | null;
@@ -15,22 +19,37 @@ interface ReadingQuestion {
 interface Props {
   passageId: string;
   passageTitle: string;
+  passageTitleUz: string;
+  passageTitleRu: string;
+  passageTitleKo: string;
   passageText: string;
   wordCount: number;
   questions: ReadingQuestion[];
 }
 
+function pick(en: string, uz: string, ru: string, ko: string, lang: string): string {
+  const map: Record<string, string> = { en, uz, ru, ko };
+  const val = map[lang];
+  return val && val.trim() !== "" ? val : en;
+}
+
 export default function ReadingClient({
   passageTitle,
+  passageTitleUz,
+  passageTitleRu,
+  passageTitleKo,
   passageText,
   wordCount,
   questions,
 }: Props) {
+  const { lang } = useLanguage();
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState(0);
   const [showExplanations, setShowExplanations] = useState(false);
   const [activeTab, setActiveTab] = useState<"passage" | "questions">("passage");
+
+  const localTitle = pick(passageTitle, passageTitleUz, passageTitleRu, passageTitleKo, lang);
 
   function handleSubmit() {
     let correct = 0;
@@ -133,7 +152,7 @@ export default function ReadingClient({
       {activeTab === "passage" && (
         <div className="card p-8 animate-fade-in">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-900">{passageTitle}</h2>
+            <h2 className="text-xl font-bold text-gray-900">{localTitle}</h2>
             <span className="badge text-xs">{wordCount} words</span>
           </div>
           <div className="prose prose-gray max-w-none">
@@ -169,6 +188,7 @@ export default function ReadingClient({
             <>
               {questions.map((q, idx) => {
                 const status = getAnswerStatus(q);
+                const localQuestion = pick(q.question, q.questionUz, q.questionRu, q.questionKo, lang);
                 const options: string[] = q.options
                   ? (JSON.parse(q.options) as string[])
                   : [];
@@ -202,7 +222,7 @@ export default function ReadingClient({
                       </span>
                       <div className="flex-1">
                         <p className="font-semibold text-gray-900">
-                          {q.question}
+                          {localQuestion}
                         </p>
                         <span className="text-xs text-gray-400 capitalize">
                           {q.type.replace("_", " ")}

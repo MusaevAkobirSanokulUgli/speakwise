@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import LanguageSwitcher from "./LanguageSwitcher";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface NavUser {
   name: string;
@@ -14,18 +15,31 @@ interface NavbarProps {
   user?: NavUser | null;
 }
 
-const NAV_LINKS = [
-  { label: "Levels", href: "/levels" },
-  { label: "Leaderboard", href: "/leaderboard" },
-  { label: "Competitions", href: "/competitions" },
-  { label: "Resources", href: "/resources" },
-  { label: "Progress", href: "/progress" },
-];
+const NAV_KEYS = [
+  { key: "levels", href: "/levels" },
+  { key: "leaderboard", href: "/leaderboard" },
+  { key: "competitions", href: "/competitions" },
+  { key: "resources", href: "/resources" },
+  { key: "progress", href: "/progress" },
+] as const;
 
 export default function Navbar({ user }: NavbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useLanguage();
+
+  // Map nav keys to translated labels (leaderboard/competitions/resources use their own namespace fallback to nav)
+  function navLabel(key: string): string {
+    // Try nav namespace first, which has levels, progress
+    const navTranslation = t("nav", key);
+    if (navTranslation !== key) return navTranslation;
+    // Fallback: leaderboard namespace for "leaderboard", etc.
+    if (key === "leaderboard") return t("leaderboard", "leaderboard");
+    if (key === "competitions") return t("admin", "competitions");
+    if (key === "resources") return t("admin", "resources");
+    return key;
+  }
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -85,7 +99,7 @@ export default function Navbar({ user }: NavbarProps) {
 
           {/* Desktop nav links */}
           <div className="hidden md:flex items-center gap-1">
-            {NAV_LINKS.map(({ label, href }) => (
+            {NAV_KEYS.map(({ key, href }) => (
               <Link
                 key={href}
                 href={href}
@@ -95,7 +109,7 @@ export default function Navbar({ user }: NavbarProps) {
                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                 }`}
               >
-                {label}
+                {navLabel(key)}
               </Link>
             ))}
             {isAdmin && (
@@ -107,7 +121,7 @@ export default function Navbar({ user }: NavbarProps) {
                     : "text-amber-600 hover:bg-amber-50"
                 }`}
               >
-                Admin Panel
+                {t("nav", "adminPanel")}
               </Link>
             )}
           </div>
@@ -127,18 +141,18 @@ export default function Navbar({ user }: NavbarProps) {
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="btn-secondary text-xs px-3 py-2"
+                  className="btn-secondary text-xs px-3 py-2 active:scale-[0.97]"
                 >
-                  Logout
+                  {t("nav", "logout")}
                 </button>
               </>
             ) : (
               <>
-                <Link href="/login" className="btn-secondary text-xs px-4 py-2">
-                  Login
+                <Link href="/login" className="btn-secondary text-xs px-4 py-2 active:scale-[0.97]">
+                  {t("nav", "login")}
                 </Link>
-                <Link href="/register" className="btn-primary text-xs px-4 py-2">
-                  Sign Up
+                <Link href="/register" className="btn-primary text-xs px-4 py-2 active:scale-[0.97]">
+                  {t("nav", "signUp")}
                 </Link>
               </>
             )}
@@ -146,7 +160,7 @@ export default function Navbar({ user }: NavbarProps) {
 
           {/* Mobile hamburger */}
           <button
-            className="md:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors"
+            className="md:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors active:scale-[0.95]"
             onClick={() => setMenuOpen((v) => !v)}
             aria-label={menuOpen ? "Close menu" : "Open menu"}
             aria-expanded={menuOpen}
@@ -180,30 +194,33 @@ export default function Navbar({ user }: NavbarProps) {
       {menuOpen && (
         <div className="md:hidden border-t border-slate-100 bg-white animate-fade-in">
           <div className="px-4 pt-3 pb-4 space-y-1">
-            {NAV_LINKS.map(({ label, href }) => (
+            {NAV_KEYS.map(({ key, href }) => (
               <Link
                 key={href}
                 href={href}
                 onClick={() => setMenuOpen(false)}
-                className={`block px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                className={`block px-4 py-3 rounded-lg text-sm font-medium transition-all active:scale-[0.98] ${
                   isActive(href)
                     ? "bg-indigo-50 text-indigo-600"
                     : "text-slate-600 hover:bg-slate-50"
                 }`}
               >
-                {label}
+                {navLabel(key)}
               </Link>
             ))}
             {isAdmin && (
               <Link
                 href="/admin"
                 onClick={() => setMenuOpen(false)}
-                className="block px-4 py-3 rounded-lg text-sm font-medium text-amber-600 hover:bg-amber-50 transition-all"
+                className="block px-4 py-3 rounded-lg text-sm font-medium text-amber-600 hover:bg-amber-50 transition-all active:scale-[0.98]"
               >
-                Admin Panel
+                {t("nav", "adminPanel")}
               </Link>
             )}
             <div className="pt-3 border-t border-slate-100 mt-2">
+              <div className="mb-3 px-1">
+                <LanguageSwitcher />
+              </div>
               {user ? (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -219,9 +236,9 @@ export default function Navbar({ user }: NavbarProps) {
                       setMenuOpen(false);
                       handleLogout();
                     }}
-                    className="btn-secondary text-xs px-3 py-2"
+                    className="btn-secondary text-xs px-3 py-2 active:scale-[0.97]"
                   >
-                    Logout
+                    {t("nav", "logout")}
                   </button>
                 </div>
               ) : (
@@ -229,16 +246,16 @@ export default function Navbar({ user }: NavbarProps) {
                   <Link
                     href="/login"
                     onClick={() => setMenuOpen(false)}
-                    className="btn-secondary flex-1 text-center text-sm"
+                    className="btn-secondary flex-1 text-center text-sm active:scale-[0.97]"
                   >
-                    Login
+                    {t("nav", "login")}
                   </Link>
                   <Link
                     href="/register"
                     onClick={() => setMenuOpen(false)}
-                    className="btn-primary flex-1 text-center text-sm"
+                    className="btn-primary flex-1 text-center text-sm active:scale-[0.97]"
                   >
-                    Sign Up
+                    {t("nav", "signUp")}
                   </Link>
                 </div>
               )}

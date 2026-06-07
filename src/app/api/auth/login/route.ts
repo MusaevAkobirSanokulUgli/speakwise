@@ -37,6 +37,8 @@ export async function POST(req: NextRequest) {
       name: user.name,
       role: user.role,
       level: user.level,
+      canAccessReading: user.canAccessReading,
+      canAccessWriting: user.canAccessWriting,
     };
 
     const token = createSessionToken(sessionUser);

@@ -2,15 +2,22 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { getServerLang, pick } from "@/lib/serverLang";
+import { t } from "@/lib/i18n";
 import Navbar from "@/components/Navbar";
+import AccessDeniedBanner from "./AccessDeniedBanner";
+import BeginnerSentenceGuide from "@/components/BeginnerSentenceGuide";
 
 export default async function TopicOverviewPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ levelSlug: string; topicSlug: string }>;
+  searchParams: Promise<{ denied?: string }>;
 }) {
   const { levelSlug, topicSlug } = await params;
-  const user = await getSession();
+  const { denied } = await searchParams;
+  const [user, lang] = await Promise.all([getSession(), getServerLang()]);
 
   const [level, topic] = await Promise.all([
     prisma.level.findUnique({ where: { slug: levelSlug } }),
@@ -40,52 +47,50 @@ export default async function TopicOverviewPage({
       }),
     ]);
 
+  const levelName = pick(level.name, level.nameUz, level.nameRu, level.nameKo, lang);
+  const topicName = pick(topic.name, topic.nameUz, topic.nameRu, topic.nameKo, lang);
+  const topicDesc = pick(topic.description, topic.descUz, topic.descRu, topic.descKo, lang);
+
   const sections = [
     {
-      title: "Vocabulary",
+      title: t(lang, "topics", "vocabulary"),
       icon: "📚",
       count: vocabCount,
-      desc: "Learn new words with definitions, examples, and images",
       href: `/levels/${levelSlug}/${topicSlug}/vocabulary`,
       color: "bg-blue-50 text-blue-700 border-blue-200",
     },
     {
-      title: "Quizzes & Tests",
+      title: t(lang, "topics", "quiz"),
       icon: "📝",
       count: quizCount,
-      desc: "Test your knowledge with multiple choice, gap fill, and sentence building",
       href: `/levels/${levelSlug}/${topicSlug}/quiz`,
       color: "bg-green-50 text-green-700 border-green-200",
     },
     {
-      title: "Speaking Questions",
+      title: t(lang, "topics", "speakingQuestions"),
       icon: "🗣️",
       count: questionCount,
-      desc: "Practice answering questions with templates and linking words",
       href: `/levels/${levelSlug}/${topicSlug}/questions`,
       color: "bg-purple-50 text-purple-700 border-purple-200",
     },
     {
-      title: "Reading",
+      title: t(lang, "topics", "reading"),
       icon: "📖",
       count: readingCount,
-      desc: "Read passages and answer comprehension questions",
       href: `/levels/${levelSlug}/${topicSlug}/reading`,
       color: "bg-cyan-50 text-cyan-700 border-cyan-200",
     },
     {
-      title: "Writing",
+      title: t(lang, "topics", "writing"),
       icon: "✍️",
       count: writingCount,
-      desc: "Practice essays, letters, and reports with teacher feedback",
       href: `/levels/${levelSlug}/${topicSlug}/writing`,
       color: "bg-rose-50 text-rose-700 border-rose-200",
     },
     {
-      title: "Discussion",
+      title: t(lang, "topics", "discussion"),
       icon: "💬",
       count: discussionCount,
-      desc: "Explore discussion prompts to improve your fluency",
       href: `/levels/${levelSlug}/${topicSlug}/discussion`,
       color: "bg-amber-50 text-amber-700 border-amber-200",
     },
@@ -96,20 +101,23 @@ export default async function TopicOverviewPage({
       <Navbar user={user} />
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Access denied banner */}
+        {denied && <AccessDeniedBanner type={denied} />}
+
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-gray-500 mb-6">
           <Link href="/levels" className="hover:text-primary-600">
-            Levels
+            {t(lang, "nav", "levels")}
           </Link>
           <span>/</span>
           <Link
             href={`/levels/${levelSlug}`}
             className="hover:text-primary-600"
           >
-            {level.name}
+            {levelName}
           </Link>
           <span>/</span>
-          <span className="text-gray-900 font-medium">{topic.name}</span>
+          <span className="text-gray-900 font-medium">{topicName}</span>
         </div>
 
         {/* Topic Header */}
@@ -122,16 +130,23 @@ export default async function TopicOverviewPage({
                   className="text-xs font-bold px-3 py-1 rounded-full text-white"
                   style={{ background: level.color }}
                 >
-                  {level.name}
+                  {levelName}
                 </span>
               </div>
               <h1 className="text-3xl font-bold text-gray-900">
-                {topic.name}
+                {topicName}
               </h1>
-              <p className="text-gray-500 mt-1">{topic.description}</p>
+              <p className="text-gray-500 mt-1">{topicDesc}</p>
             </div>
           </div>
         </div>
+
+        {/* Beginner sentence guide */}
+        {(levelSlug === "beginner" || levelSlug === "elementary") && (
+          <div className="mb-8">
+            <BeginnerSentenceGuide />
+          </div>
+        )}
 
         {/* Sections */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -146,11 +161,10 @@ export default async function TopicOverviewPage({
                 <div>
                   <h2 className="text-lg font-bold">{section.title}</h2>
                   <span className="text-sm opacity-75">
-                    {section.count} items
+                    {section.count} {t(lang, "topics", "items")}
                   </span>
                 </div>
               </div>
-              <p className="text-sm opacity-75">{section.desc}</p>
             </Link>
           ))}
         </div>

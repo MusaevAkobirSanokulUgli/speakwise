@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { getServerLang, pick } from "@/lib/serverLang";
+import { t } from "@/lib/i18n";
 import Navbar from "@/components/Navbar";
 import QuizComponent from "@/components/QuizComponent";
 
@@ -11,7 +13,7 @@ export default async function QuizPage({
   params: Promise<{ levelSlug: string; topicSlug: string }>;
 }) {
   const { levelSlug, topicSlug } = await params;
-  const user = await getSession();
+  const [user, lang] = await Promise.all([getSession(), getServerLang()]);
 
   const [level, topic] = await Promise.all([
     prisma.level.findUnique({ where: { slug: levelSlug } }),
@@ -24,6 +26,9 @@ export default async function QuizPage({
     orderBy: { order: "asc" },
   });
 
+  const levelName = pick(level.name, level.nameUz, level.nameRu, level.nameKo, lang);
+  const topicName = pick(topic.name, topic.nameUz, topic.nameRu, topic.nameKo, lang);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar user={user} />
@@ -32,36 +37,36 @@ export default async function QuizPage({
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-gray-500 mb-6">
           <Link href="/levels" className="hover:text-primary-600">
-            Levels
+            {t(lang, "nav", "levels")}
           </Link>
           <span>/</span>
           <Link href={`/levels/${levelSlug}`} className="hover:text-primary-600">
-            {level.name}
+            {levelName}
           </Link>
           <span>/</span>
           <Link
             href={`/levels/${levelSlug}/${topicSlug}`}
             className="hover:text-primary-600"
           >
-            {topic.name}
+            {topicName}
           </Link>
           <span>/</span>
-          <span className="text-gray-900 font-medium">Quiz</span>
+          <span className="text-gray-900 font-medium">{t(lang, "topics", "quiz")}</span>
         </div>
 
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">
-            {topic.icon} {topic.name} — Quiz
+            {topic.icon} {topicName} — {t(lang, "topics", "quiz")}
           </h1>
           <p className="text-gray-500 mt-1">
-            {level.name} &middot; {quizzes.length} questions
+            {levelName} &middot; {quizzes.length} {t(lang, "levels", "questions").toLowerCase()}
           </p>
         </div>
 
         {quizzes.length === 0 ? (
           <div className="card p-12 text-center">
             <p className="text-gray-400 text-lg">
-              No quizzes available for this level and topic yet.
+              {t(lang, "common", "noData")}
             </p>
           </div>
         ) : (
@@ -70,9 +75,15 @@ export default async function QuizPage({
               id: q.id,
               type: q.type as "multiple_choice" | "gap_fill" | "sentence_build",
               question: q.question,
+              questionUz: q.questionUz,
+              questionRu: q.questionRu,
+              questionKo: q.questionKo,
               options: q.options ?? undefined,
               correctAnswer: q.correctAnswer,
               explanation: q.explanation ?? undefined,
+              explanationUz: q.explanationUz,
+              explanationRu: q.explanationRu,
+              explanationKo: q.explanationKo,
             }))}
           />
         )}
@@ -82,13 +93,13 @@ export default async function QuizPage({
             href={`/levels/${levelSlug}/${topicSlug}/vocabulary`}
             className="btn-secondary"
           >
-            &larr; Vocabulary
+            &larr; {t(lang, "topics", "vocabulary")}
           </Link>
           <Link
             href={`/levels/${levelSlug}/${topicSlug}/questions`}
             className="btn-primary"
           >
-            Speaking Questions &rarr;
+            {t(lang, "topics", "speakingQuestions")} &rarr;
           </Link>
         </div>
       </main>

@@ -1,14 +1,24 @@
 "use client";
 
 import { useState } from "react";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface WritingTask {
   id: string;
   title: string;
+  titleUz: string;
+  titleRu: string;
+  titleKo: string;
   instructions: string;
+  instructUz: string;
+  instructRu: string;
+  instructKo: string;
   type: string;
   sampleAnswer: string | null;
   tips: string | null;
+  tipsUz?: string;
+  tipsRu?: string;
+  tipsKo?: string;
   wordCountMin: number;
   wordCountMax: number;
 }
@@ -18,13 +28,24 @@ interface Props {
   isLoggedIn: boolean;
 }
 
+function pick(en: string, uz: string, ru: string, ko: string, lang: string): string {
+  const map: Record<string, string> = { en, uz, ru, ko };
+  const val = map[lang];
+  return val && val.trim() !== "" ? val : en;
+}
+
 export default function WritingClient({ task, isLoggedIn }: Props) {
+  const { lang } = useLanguage();
   const [text, setText] = useState("");
   const [showSample, setShowSample] = useState(false);
   const [showTips, setShowTips] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
+
+  const localTitle = pick(task.title, task.titleUz, task.titleRu, task.titleKo, lang);
+  const localInstructions = pick(task.instructions, task.instructUz, task.instructRu, task.instructKo, lang);
+  const localTips = task.tips ? pick(task.tips, task.tipsUz ?? "", task.tipsRu ?? "", task.tipsKo ?? "", lang) : null;
 
   const wordCount = text.trim() === "" ? 0 : text.trim().split(/\s+/).length;
   const meetsMin = wordCount >= task.wordCountMin;
@@ -110,12 +131,12 @@ export default function WritingClient({ task, isLoggedIn }: Props) {
             {task.wordCountMin}–{task.wordCountMax} words required
           </span>
         </div>
-        <h2 className="text-lg font-bold text-gray-900 mb-2">{task.title}</h2>
-        <p className="text-gray-700 leading-relaxed">{task.instructions}</p>
+        <h2 className="text-lg font-bold text-gray-900 mb-2">{localTitle}</h2>
+        <p className="text-gray-700 leading-relaxed">{localInstructions}</p>
       </div>
 
       {/* Tips */}
-      {task.tips && (
+      {localTips && (
         <div className="card p-4">
           <button
             onClick={() => setShowTips((v) => !v)}
@@ -131,7 +152,7 @@ export default function WritingClient({ task, isLoggedIn }: Props) {
           </button>
           {showTips && (
             <div className="mt-3 pt-3 border-t border-gray-100 text-sm text-amber-800 bg-amber-50 rounded-lg p-4 animate-fade-in">
-              {task.tips}
+              {localTips}
             </div>
           )}
         </div>
